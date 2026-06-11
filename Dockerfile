@@ -4,7 +4,7 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONIOENCODING=UTF-8
-ENV PYTHONPATH="${PYTHONPATH}:/app"
+ENV PYTHONPATH="/app"
 
 RUN apk add --update --no-cache gcc musl-dev
 RUN pip install --no-cache-dir uv
