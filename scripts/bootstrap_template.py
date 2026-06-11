@@ -15,22 +15,46 @@ PLACEHOLDER_AUTHOR_EMAIL = "mario.potato@univr.it"
 PLACEHOLDER_DESCRIPTION = "A simple template project."
 SUPPORTED_PYTHON_VERSIONS = ("3.10", "3.11", "3.12", "3.13", "3.14")
 
+WORKFLOW_FILES = (
+    Path(".github/workflows/docker.yaml"),
+    Path(".github/workflows/documentation.yaml"),
+    Path(".github/workflows/package.yaml"),
+    Path(".github/workflows/quality.yaml"),
+    Path(".github/workflows/security.yaml"),
+    Path(".github/workflows/template-smoke.yaml"),
+    Path(".github/workflows/tests.yaml"),
+)
+PYTHON_VERSION_WORKFLOW_FILES = (
+    Path(".github/workflows/documentation.yaml"),
+    Path(".github/workflows/package.yaml"),
+    Path(".github/workflows/quality.yaml"),
+    Path(".github/workflows/security.yaml"),
+    Path(".github/workflows/template-smoke.yaml"),
+    Path(".github/workflows/tests.yaml"),
+)
 PACKAGE_FILES = (
     Path(".env"),
     Path(".pre-commit-config.yaml"),
     Path("Dockerfile"),
+    Path("README.md"),
+    Path("project_name/__init__.py"),
     Path("docs/api.md"),
+    Path("docs/documentation.md"),
+    Path("docs/template.md"),
+    Path("docs/usage.md"),
     Path("examples/say_hi.py"),
-    Path("mkdocs.yml"),
+    Path("scripts/validate_distribution.py"),
     Path("tests/test_greeter.py"),
     Path("tox.ini"),
+    *WORKFLOW_FILES,
 )
 REPOSITORY_FILES = (
     Path(".devcontainer/devcontainer.json"),
-    Path("mkdocs.yml"),
     Path("README.md"),
+    *WORKFLOW_FILES,
 )
 DOCS_INDEX = Path("docs/index.md")
+DOCS_CONF = Path("docs/conf.py")
 PACKAGE_DIR = Path(PLACEHOLDER_PACKAGE)
 
 
@@ -120,6 +144,11 @@ def python_env_name(version: str) -> str:
     """Convert a Python version to the tox/Ruff compact version form."""
     major, minor = version.split(".")
     return f"py{major}{minor}"
+
+
+def normalize_distribution_name(name: str) -> str:
+    """Normalize a Python distribution name for lockfile metadata."""
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 def versions_from_minimum(minimum_version: str) -> tuple[str, ...]:
@@ -250,6 +279,11 @@ def update_pyproject(
         f'known-first-party = ["{package_name}"]',
         1,
     )
+    updated = updated.replace(
+        'source = ["project_name"]',
+        f'source = ["{package_name}"]',
+        1,
+    )
     if minimum_python_version is not None:
         py_version = python_env_name(minimum_python_version)
         updated = re.sub(
@@ -306,13 +340,24 @@ def update_tox(
         path.write_text(updated, encoding="utf-8")
 
 
+def format_ci_python_matrix(versions: tuple[str, ...]) -> str:
+    """Format Python versions for a GitHub Actions tox matrix."""
+    entries = []
+    for version in versions:
+        entries.append(
+            f"        - python-version: '{version}'\n"
+            f"          tox-env: {python_env_name(version)}"
+        )
+    return "\n".join(entries)
+
+
 def update_ci_workflow(
     path: Path,
     *,
     minimum_python_version: str,
     dry_run: bool,
 ) -> None:
-    """Update CI Python matrix from the minimum supported version."""
+    """Update CI Python versions from the minimum supported version."""
     if not path.exists():
         return
 
@@ -326,8 +371,26 @@ def update_ci_workflow(
         count=1,
     )
     updated = re.sub(
+        r"(?m)^  PYTHON_VERSION: '\d+\.\d+'$",
+        f"  PYTHON_VERSION: '{minimum_python_version}'",
+        updated,
+    )
+    updated = re.sub(
         r"matrix\.python-version == '\d+\.\d+'",
         f"matrix.python-version == '{minimum_python_version}'",
+        updated,
+    )
+    updated = re.sub(
+        r"(?ms)^        include:\n"
+        r"(?:        - python-version: '\d+\.\d+'\n"
+        r"          tox-env: py\d+\n?)+",
+        f"        include:\n{format_ci_python_matrix(versions)}\n",
+        updated,
+        count=1,
+    )
+    updated = re.sub(
+        r"(?m)^(\s+python-version): '\d+\.\d+'$",
+        rf"\1: '{minimum_python_version}'",
         updated,
     )
 
@@ -342,20 +405,29 @@ def update_ci_workflow(
 def update_uv_lock(
     path: Path,
     *,
-    minimum_python_version: str,
+    repository_name: str,
+    minimum_python_version: str | None,
     dry_run: bool,
 ) -> None:
-    """Update uv lockfile project Python metadata if present."""
+    """Update uv lockfile project metadata if present."""
     if not path.exists():
         return
 
     content = path.read_text(encoding="utf-8")
+    distribution_name = normalize_distribution_name(repository_name)
     updated = re.sub(
-        r'(?m)^requires-python = ">=\d+\.\d+, <4"$',
-        f'requires-python = ">={minimum_python_version}, <4"',
+        r'(?m)^name = "project-name"$',
+        f'name = "{distribution_name}"',
         content,
         count=1,
     )
+    if minimum_python_version is not None:
+        updated = re.sub(
+            r'(?m)^requires-python = ">=\d+\.\d+, <4"$',
+            f'requires-python = ">={minimum_python_version}, <4"',
+            updated,
+            count=1,
+        )
 
     if updated == content:
         return
@@ -372,8 +444,43 @@ def update_docs_index(
     dry_run: bool,
 ) -> None:
     """Update the docs landing page heading."""
+    if not path.exists():
+        return
+
     content = path.read_text(encoding="utf-8")
     updated = content.replace("# project_name", f"# {project_title}", 1)
+
+    if updated == content:
+        return
+
+    print(f"updated {path}")
+    if not dry_run:
+        path.write_text(updated, encoding="utf-8")
+
+
+def update_docs_conf(
+    path: Path,
+    *,
+    project_title: str,
+    author: str,
+    dry_run: bool,
+) -> None:
+    """Update Sphinx project metadata."""
+    if not path.exists():
+        return
+
+    content = path.read_text(encoding="utf-8")
+    updated = content
+    replacements = {
+        'project = "project_name"': f'project = "{project_title}"',
+        'author = "Mario Potato"': f'author = "{author}"',
+        'copyright = "2026, Mario Potato"': f'copyright = "2026, {author}"',
+        'html_title = "project_name documentation"': (
+            f'html_title = "{project_title} documentation"'
+        ),
+    }
+    for old, new in replacements.items():
+        updated = updated.replace(old, new, 1)
 
     if updated == content:
         return
@@ -465,6 +572,12 @@ def main() -> int:
         project_title=project_title,
         dry_run=args.dry_run,
     )
+    update_docs_conf(
+        DOCS_CONF,
+        project_title=project_title,
+        author=metadata["author"],
+        dry_run=args.dry_run,
+    )
     update_pyproject(
         Path("pyproject.toml"),
         repository_name=repository_name,
@@ -475,22 +588,24 @@ def main() -> int:
         minimum_python_version=minimum_python_version,
         dry_run=args.dry_run,
     )
+    update_uv_lock(
+        Path("uv.lock"),
+        repository_name=repository_name,
+        minimum_python_version=minimum_python_version,
+        dry_run=args.dry_run,
+    )
     if minimum_python_version is not None:
         update_tox(
             Path("tox.ini"),
             minimum_python_version=minimum_python_version,
             dry_run=args.dry_run,
         )
-        update_ci_workflow(
-            Path(".github/workflows/ci.yaml"),
-            minimum_python_version=minimum_python_version,
-            dry_run=args.dry_run,
-        )
-        update_uv_lock(
-            Path("uv.lock"),
-            minimum_python_version=minimum_python_version,
-            dry_run=args.dry_run,
-        )
+        for workflow_path in PYTHON_VERSION_WORKFLOW_FILES:
+            update_ci_workflow(
+                workflow_path,
+                minimum_python_version=minimum_python_version,
+                dry_run=args.dry_run,
+            )
     rename_package_dir(package_name, dry_run=args.dry_run)
     return 0
 
