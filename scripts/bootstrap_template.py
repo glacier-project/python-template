@@ -16,6 +16,7 @@ PLACEHOLDER_DESCRIPTION = "A simple template project."
 SUPPORTED_PYTHON_VERSIONS = ("3.10", "3.11", "3.12", "3.13", "3.14")
 
 WORKFLOW_FILES = (
+    Path(".github/workflows/coverage.yaml"),
     Path(".github/workflows/docker.yaml"),
     Path(".github/workflows/documentation.yaml"),
     Path(".github/workflows/package.yaml"),
@@ -25,6 +26,7 @@ WORKFLOW_FILES = (
     Path(".github/workflows/tests.yaml"),
 )
 PYTHON_VERSION_WORKFLOW_FILES = (
+    Path(".github/workflows/coverage.yaml"),
     Path(".github/workflows/documentation.yaml"),
     Path(".github/workflows/package.yaml"),
     Path(".github/workflows/quality.yaml"),

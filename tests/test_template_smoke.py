@@ -21,6 +21,7 @@ IGNORED_COPY_NAMES = {
     "htmlcov",
 }
 PLACEHOLDER_CHECK_PATHS = (
+    ".github/workflows/coverage.yaml",
     ".github/workflows/docker.yaml",
     ".github/workflows/documentation.yaml",
     ".github/workflows/package.yaml",

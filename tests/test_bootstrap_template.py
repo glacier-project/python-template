@@ -298,6 +298,16 @@ def test_bootstrap_template_updates_minimum_python_version(
         "    - name: Run tests\n"
         "      if: matrix.python-version == '3.10'\n"
     )
+    coverage_workflow = (
+        "env:\n"
+        "  PYTHON_VERSION: '3.10'\n"
+        "jobs:\n"
+        "  coverage:\n"
+        "    steps:\n"
+        "    - uses: ./.github/actions/setup-python-uv\n"
+        "      with:\n"
+        "        python-version: ${{ env.PYTHON_VERSION }}\n"
+    )
     quality_workflow = (
         "env:\n"
         "  PYTHON_VERSION: '3.10'\n"
@@ -318,6 +328,10 @@ def test_bootstrap_template_updates_minimum_python_version(
     )
     (repo_dir / ".github" / "workflows" / "tests.yaml").write_text(
         tests_workflow,
+        encoding="utf-8",
+    )
+    (repo_dir / ".github" / "workflows" / "coverage.yaml").write_text(
+        coverage_workflow,
         encoding="utf-8",
     )
     (repo_dir / ".github" / "workflows" / "quality.yaml").write_text(
@@ -351,6 +365,9 @@ def test_bootstrap_template_updates_minimum_python_version(
     tests_ci = (repo_dir / ".github" / "workflows" / "tests.yaml").read_text(
         encoding="utf-8"
     )
+    coverage_ci = (
+        repo_dir / ".github" / "workflows" / "coverage.yaml"
+    ).read_text(encoding="utf-8")
     quality_ci = (
         repo_dir / ".github" / "workflows" / "quality.yaml"
     ).read_text(encoding="utf-8")
@@ -369,6 +386,8 @@ def test_bootstrap_template_updates_minimum_python_version(
         assert f"- python-version: '{version}'" in tests_ci
         assert f"tox-env: {format_tox_env((version,))}" in tests_ci
     assert "python-version: '3.10'" not in tests_ci
+    assert f"PYTHON_VERSION: '{minimum_python_version}'" in coverage_ci
+    assert "python-version: ${{ env.PYTHON_VERSION }}" in coverage_ci
     assert f"PYTHON_VERSION: '{minimum_python_version}'" in quality_ci
     assert "python-version: ${{ env.PYTHON_VERSION }}" in quality_ci
     assert "demo-service:ci" in docker_ci

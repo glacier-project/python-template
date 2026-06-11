@@ -1,5 +1,16 @@
 # Python Template
 
+<!-- coverage:start -->
+
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
+
+Current coverage: **100.00%**. Required minimum: **90.00%**.
+
+Coverage details: 30/30 statements and 6/6 branches covered.
+CI updates this block from `coverage.xml` after the coverage workflow runs.
+
+<!-- coverage:end -->
+
 This repository is a Python project template for the Glacier project. It gives
 new projects a working package layout, uv-based dependency management, tests,
 Ruff formatting and linting, Pyrefly type checking, Sphinx documentation,
@@ -81,6 +92,8 @@ Run coverage with the configured threshold:
 ```bash
 uv run tox -e coverage
 ```
+
+The `Coverage` workflow updates the README badge and summary from `coverage.xml` on pushes to `main` and `dev`.
 
 Audit dependencies for known vulnerabilities:
 
