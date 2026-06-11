@@ -69,6 +69,7 @@ instance/
 .scrapy
 
 # Documentation build output
+docs/_build/
 site/
 
 # PyBuilder
@@ -138,9 +139,6 @@ venv.bak/
 
 # Rope project settings
 .ropeproject
-
-# mkdocs documentation
-/site
 
 # Pyre type checker
 .pyre/

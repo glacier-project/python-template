@@ -1,82 +1,167 @@
 # Python Template
 
-This template contains the standard structure for a Python repository for the Glacier project. The template is designed to be used as a starting point for new python projects with support for dockerized development and deployment.
+This repository is a Python project template for the Glacier project. It gives
+new projects a working package layout, uv-based dependency management, tests,
+Ruff formatting and linting, Pyrefly type checking, Sphinx documentation,
+Docker support, and GitHub Actions workflows.
 
-## Bootstrap the template
+## Create a project from the template
 
-After creating a new repository from this template, run:
+Create a new repository with GitHub's **Use this template** button. The
+`Bootstrap Template` workflow attempts to rewrite the template placeholders on
+the first run and commit the result back to the new repository.
+
+If the workflow does not run in your GitHub environment, run the bootstrap
+script manually:
 
 ```bash
 python scripts/bootstrap_template.py your-repository-name
 ```
 
-This renames the placeholder package directory, updates the package metadata,
-and rewrites the main `project_name` and `python-template` references across
-the repository. Use `--minimum-python-version` to also configure Python support
-with one of `3.10`, `3.11`, `3.12`, `3.13`, or `3.14`.
-Use `--package-name`, `--project-title`, `--author`, `--author-email`, or
-`--description` if the defaults inferred from the repository name are not
-enough.
+The bootstrap script:
 
-This template also includes a `Bootstrap Template` workflow that tries to
-rewrite placeholders automatically when the repository is created from
-`Use this template`. It listens to the repository `create` and `push` events,
-then derives the repository name from `github.repository`, the author from
-`github.repository_owner`, and the author email from the GitHub noreply
-address for the triggering actor.
+- renames the source package directory
+- updates package metadata in `pyproject.toml`
+- rewrites imports and tool configuration from the template package name
+- updates README and documentation titles
+- adjusts the supported Python versions in tox and CI when requested
 
-If GitHub does not run that first automation in your environment, you can still
-run the `Bootstrap Template` workflow manually from the Actions tab.
-
-## Getting started
-
-- <code>Use this template > Create a new repository</code> : You can clone this template from the UI by clicking on the upper left repository button.
-- <code>Use this template > Open in codespace</code> : Alternatively, you can directly try it out in Github codespace. Codespace is a Github feature that allows you to develop directly in the cloud using VSCode devcontainer. For more information, please refer to <a href="https://docs.github.com/en/codespaces">Github Codespace</a>.
-- <code>git clone git@github.com:esd-univr/python-template.git</code> : Or, you can clone this template from the command line.
-
-## Installation
-
-Once the project cloned, you can install the project dependencies.
-For development, you can use the `dev` extra to install the development dependencies.
+Use explicit options when the defaults inferred from the repository name are not
+enough:
 
 ```bash
-uv sync --extra dev
+python scripts/bootstrap_template.py your-repository-name \
+  --package-name your_package \
+  --project-title "Your Project" \
+  --author "Your Name" \
+  --author-email "you@example.com" \
+  --description "Short project description." \
+  --minimum-python-version 3.12
 ```
 
-or using pip:
+Repository names may contain dashes. The default Python package name is the
+repository name with dashes converted to underscores.
+
+## Install dependencies
+
+Install the project for development:
 
 ```bash
-pip install -e .[dev]
-# install python extension for .env file
-pip install python-dotenv
-# Note: the .env file must be loaded manually in the main script (https://pypi.org/project/python-dotenv/)
+uv sync --extra dev --extra docs
 ```
 
-This template includes the following software and tools:
+Install only runtime dependencies:
 
-- [uv](https://docs.astral.sh/uv/) - A Python package and project manager.
-- [Ruff](https://docs.astral.sh/ruff/) - A Python linter and code formatter.
-- [Pyrefly](https://pyrefly.org/) - Static type checker for Python. It ensures that the variables and functions are used correctly.
-- [Pytest](https://docs.pytest.org/en/stable/) - Python testing framework. It is used to write and run tests for the project.
-- [Tox](https://tox.wiki/en/latest/) - A tool for automating and standardizing testing in Python. It is used to run the tests with multiple Python versions, check the code quality, and build the documentation.
-- [Pre-commit](https://pre-commit.com/) - A framework for managing and maintaining multi-language pre-commit hooks. It is used to enforce a consistent code style and quality in each commit.
-- [Containers](https://www.docker.com/) - Containers are a standard unit of software that packages up code and all its dependencies into a single `container image`. This, simplifies the deployment process of the application across different computing environments.
-- [Devcontainer](https://code.visualstudio.com/docs/devcontainers/containers) - VS Code extension that allows you to use a Docker container as a full-featured development environment.
-- [MkDocs](https://www.mkdocs.org/) - Static documentation site generator used to build the project documentation.
-- [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) - The documentation theme used by the template.
-- [mkdocstrings](https://mkdocstrings.github.io/) - API reference generator that renders documentation directly from the Python code and its docstrings.
-- [GitHub Actions](https://docs.github.com/en/actions) - Automate, customize, and execute your software development workflows in your repository. Actions are used to run the tests, check the code quality, build the documentation, building the library and publish it to packages repositories (e.g. PyPi), and much more.
+```bash
+uv sync
+```
+
+Using pip is also supported:
+
+```bash
+pip install -e .[dev,docs]
+```
+
+## Run checks
+
+Run tests for the active Python environment:
+
+```bash
+uv run pytest
+```
+
+Run type checks:
+
+```bash
+uv run tox -e type
+```
+
+Run coverage with the configured threshold:
+
+```bash
+uv run tox -e coverage
+```
+
+Audit dependencies for known vulnerabilities:
+
+```bash
+uv run tox -e security
+```
+
+Run Ruff fixes and formatting:
+
+```bash
+uv run tox -e formatter
+```
+
+Build and smoke-test the package artifacts:
+
+```bash
+uv run tox -e build
+```
+
+Build the documentation:
+
+```bash
+uv run tox -e docs
+```
+
+Build and smoke-test the Docker image:
+
+```bash
+docker build --pull -t python-template:ci .
+docker run --rm python-template:ci uv run python -c "import project_name"
+```
+
+See `CONTRIBUTING.md` for the full local verification workflow and the
+generated-project smoke test.
+
+## Documentation
+
+Documentation lives in `docs/` and is built with Sphinx. Manual pages are
+written in Markdown with MyST, while API reference pages are generated from
+Google-style Python docstrings.
+
+The canonical documentation build is:
+
+```bash
+uv run tox -e docs
+```
+
+This runs Sphinx with warnings treated as errors and writes HTML to
+`docs/_build/html`. Use a live preview while editing docs:
+
+```bash
+uv run sphinx-autobuild docs docs/_build/html
+```
+
+The live preview is for authoring convenience; `tox -e docs` is the build that
+must pass before merging. Read the Docs builds the site from
+`.readthedocs.yaml`, and GitHub Actions uploads the built HTML as an artifact on
+pull requests.
 
 ## Project structure
 
-| Directory       | Status   | Description                                                                                                                                                                                                                                                                                                                                                          |
-| --------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.devcontainer` | Optional | Devcontainer configuration directory. It contains a `Dockerfile` used to build the development container, and a `devcontainer.json` file that specifies the container configuration. For more information, please refer to <a href="https://code.visualstudio.com/docs/devcontainers/containers">VS Code Devcontainer</a>.                                           |
-| `.github`       | Optional | Github configuration, mainly used to store GitHub actions.                                                                                                                                                                                                                                                                                                           |
-| `docs`          | Required | The docs directory contains the MkDocs content for your project. The default configuration uses `mkdocstrings` so the API documentation is rendered directly from the Python package and its docstrings. **Documentation is mandatory for all projects: remember how many times you complained or will complain about the lack of documentation in other projects**. |
-| `examples`      | Optional | The examples directory contains all the examples of your project.                                                                                                                                                                                                                                                                                                    |
-| `project_name`  | Required | The project_name directory contains all the source code of your project.                                                                                                                                                                                                                                                                                             |
-| `resources`     | Optional | Resources are used to store additional files that are used within your project (e.g. configuration files, images, etc.).                                                                                                                                                                                                                                             |
-| `scripts`       | Optional | The scripts directory contains all the utility scripts that are useful for the development of your project, such as the build script, the test script, etc.                                                                                                                                                                                                          |
-| `tests`         | Required | The tests directory contains all the tests of your project and should follow the same hierarchical structure than the `project_name` directory. If you have a module `project_name/module.py`, you should have a test file `tests/test_module.py`.                                                                                                                   |
-| `CHANGELOG.md`  | Optional | The changelog file contains a curated, chronologically ordered list of notable changes for each version of a project.                                                                                                                                                                                                                                                |
+| Path            | Status   | Purpose                                                                   |
+| --------------- | -------- | ------------------------------------------------------------------------- |
+| `.github/`      | Optional | GitHub Actions, Dependabot, and repository guidance.                      |
+| `docs/`         | Required | Sphinx documentation, including manual pages and generated API reference. |
+| `examples/`     | Optional | Runnable examples for users and contributors.                             |
+| `project_name/` | Required | Source package. The bootstrap script renames this directory.              |
+| `scripts/`      | Optional | Repository automation scripts, including the bootstrap script.            |
+| `tests/`        | Required | Pytest test suite. Mirror the package structure where practical.          |
+| `Dockerfile`    | Optional | Container build for running the project example.                          |
+| `tox.ini`       | Required | Local and CI task definitions.                                            |
+
+## Included tools
+
+- [uv](https://docs.astral.sh/uv/) for dependency management
+- [Tox](https://tox.wiki/en/latest/) for repeatable test and build tasks
+- [Pytest](https://docs.pytest.org/en/stable/) for tests
+- [Ruff](https://docs.astral.sh/ruff/) for linting and formatting
+- [Pyrefly](https://pyrefly.org/) for static type checking
+- [Sphinx](https://www.sphinx-doc.org/) for documentation generation
+- [MyST Parser](https://myst-parser.readthedocs.io/) for Markdown in Sphinx
+- [Read the Docs](https://readthedocs.org/) for hosted documentation
+- [pip-audit](https://pypi.org/project/pip-audit/) for dependency vulnerability checks
+- [GitHub Actions](https://docs.github.com/en/actions) for CI automation

@@ -1,7 +1,9 @@
 # API Reference
 
-::: project_name
+```{automodule} project_name
+```
 
 ## Module Reference
 
-::: project_name.greeter
+```{automodule} project_name.greeter
+```
