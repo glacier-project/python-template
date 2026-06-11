@@ -1,0 +1,30 @@
+name: Docker
+
+on:
+  push:
+    branches:
+    - main
+    - dev
+  pull_request:
+    branches:
+    - main
+    - dev
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: Build image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@v6
+    - name: Build Docker image
+      run: docker build --pull -t python-template:ci .
+    - name: Smoke-test Docker image
+      run: docker run --rm python-template:ci uv run python -c "import project_name"
