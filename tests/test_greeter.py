@@ -1,6 +1,6 @@
 import pytest
 
-from project_name.greeter import Greeter, Language
+from project_name.greeter import Greeter, Language, get_language
 
 
 @pytest.mark.parametrize(
@@ -26,3 +26,14 @@ class TestGreeter:
 
         # Assert
         assert greeter.greet() == expected_greeting.format(name=name)
+
+
+def test_get_language_accepts_string_code() -> None:
+    assert get_language("it") is Language.IT
+
+
+def test_get_language_defaults_to_english_for_unsupported_code(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    assert get_language("xx") is Language.EN
+    assert "Unsupported language code: xx" in caplog.text
